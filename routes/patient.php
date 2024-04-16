@@ -16,7 +16,11 @@ use Illuminate\Support\Facades\Auth;
 |
 */
 
-Route::prefix('/home/patient/dashboard/')->name('patient.dashboard.')->middleware("auth")->group(function () {
+Route::prefix('/home/patient/dashboard/')->name('patient.dashboard.')->group(function () {
 
-    // Route::get("createPharmacy", [PatientController::class, 'createPharmacy'])->name("createPharmacy");
+    Route::get("donation", [PatientController::class, "donation"]);
+    Route::post("storeDonation", [PatientController::class, 'storeDonation'])->name("storeDonation");
+
+    Route::get("alarm", [PatientController::class, "alarm"]);
+    Route::post("storeAlarm", [PatientController::class, 'storeAlarm'])->name("storeAlarm");
 });

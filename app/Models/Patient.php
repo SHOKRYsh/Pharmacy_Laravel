@@ -16,4 +16,13 @@ class Patient extends Authenticatable
         'user_id',
         'image_url',
     ];
+
+    public function donation()
+    {
+        return $this->hasMany(Donation::class, 'patient_id');
+    }
+    public function alarm()
+    {
+        return $this->hasMany(Alarm::class, 'patient_id');
+    }
 }

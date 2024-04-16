@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\patient\PatientController;
 use App\Http\Controllers\pharmacist\PharmacistController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
