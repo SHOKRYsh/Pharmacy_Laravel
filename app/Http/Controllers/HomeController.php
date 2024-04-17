@@ -24,7 +24,6 @@ class HomeController extends Controller
      */
     public function index()
     {
-        // dd(Auth::user());
         if (Auth::user()->user_type == "admin") {
             return view('admin.dashboard');
         } else {

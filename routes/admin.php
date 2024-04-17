@@ -29,6 +29,8 @@ Route::prefix("admin/")->name("admin.")->group(function () {
 
         Route::get('dashboard/addDrugs', [AdminController::class, "addDrugs"])->name('add.drugs');
         Route::post('dashboard/upload', [AdminController::class, "upload"])->name('upload.drugs');
+
+        Route::get('dashboard/donation', [AdminController::class, "donation"])->name('donation');
     });
 
     Route::controller(AdminController::class)->group(function () {

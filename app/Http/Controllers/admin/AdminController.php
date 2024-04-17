@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 use App\Imports\DrugsImport;
+use App\Models\Donation;
 use App\Models\Drug;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -157,5 +158,12 @@ class AdminController extends Controller
 
 
         return redirect()->back()->with('status', 'Imported Successfully');
+    }
+
+    public function donation()
+    {
+        $name = Auth::user()->name;
+        $donations = Donation::get();
+        return view('admin.functions.donation', ["donations" => $donations, "name" => $name]);
     }
 }

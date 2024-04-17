@@ -15,6 +15,9 @@ class Patient extends Authenticatable
     protected $fillable = [
         'user_id',
         'image_url',
+        'address',
+        'longitude',
+        'latitude',
     ];
 
     public function donation()
@@ -24,5 +27,14 @@ class Patient extends Authenticatable
     public function alarm()
     {
         return $this->hasMany(Alarm::class, 'patient_id');
+    }
+
+    public function disease()
+    {
+        return $this->hasMany(ChronicDiseases::class, 'patient_id');
+    }
+    public function sensitivity()
+    {
+        return $this->hasMany(Sensitivity::class, 'patient_id');
     }
 }
