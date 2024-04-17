@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('pharmacies', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger("pharmacist_id");
+            $table->unsignedBigInteger("pharmacist_id")->nullable();
             $table->string('pharmacy_name')->nullable();
             $table->double('longitude')->nullable();
             $table->double('latitude')->nullable();

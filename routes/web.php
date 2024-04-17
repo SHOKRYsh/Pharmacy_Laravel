@@ -75,5 +75,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/information', [PatientController::class, 'information']);
         Route::post('/storeInformation', [PatientController::class, 'storeInformation'])->name('storeInformation');
+
+        Route::get('/disease', [PatientController::class, 'disease']);
+        Route::post('/storeDisease', [PatientController::class, 'storeDisease'])->name('storeDisease');
     });
 });

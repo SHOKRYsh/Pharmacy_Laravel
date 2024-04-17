@@ -4,8 +4,11 @@ namespace App\Http\Controllers\patient;
 
 use App\Http\Controllers\Controller;
 use App\Models\Alarm;
+use App\Models\PatientChronicDiseases;
+use App\Models\Disease;
 use App\Models\Donation;
 use App\Models\Patient;
+use App\Models\Payment;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -64,7 +67,6 @@ class PatientController extends Controller
         return redirect()->route('home');
     }
 
-
     private function uploadImage($image, $destination)
     {
         $photoName = $image->getClientOriginalName();
@@ -73,6 +75,33 @@ class PatientController extends Controller
 
         return "$destination/$updatedPhotoName";
     }
+
+
+    public function disease()
+    {
+        $diseases = Disease::get();
+        return view("patient.disease", ["diseases" => $diseases]);
+    }
+    public function storeDisease(Request $request)
+    {
+        $selectedDiseases = $request->input('chronic_diseases');
+        $patient = auth()->user();
+        foreach ($selectedDiseases as $diseaseId) {
+            $checkExisting = PatientChronicDiseases::where('patient_id', $patient->id)
+                ->where('disease_id', $diseaseId)
+                ->exists();
+
+            if (!$checkExisting) {
+                PatientChronicDiseases::create([
+                    'patient_id' => $patient->id,
+                    'disease_id' => $diseaseId,
+                ]);
+            }
+        }
+
+        return redirect()->back()->with('status', 'Chronic diseases saved successfully!');
+    }
+
     public function donation()
     {
         // dd(Auth::user());
@@ -120,5 +149,23 @@ class PatientController extends Controller
 
 
         return redirect()->back()->with('status', 'Alarm is created successfully!');
+    }
+    public function storePayment(Request $request)
+    {
+        $request->validate([
+            'amount' => 'required',
+        ]);
+
+        $user = Auth::user();
+        $alarm = Payment::create([
+            'patient_id' => Auth::id(),
+            'name' => $user->name,
+            'email' => $user->email,
+            'phone' => $user->phone,
+            'amount' => $request->input()['amount'],
+        ]);
+
+
+        return redirect()->back()->with('status', 'Pauymet process is stored successfully!');
     }
 }

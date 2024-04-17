@@ -5,14 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class ChronicDiseases extends Model
+class Payment extends Model
 {
     use HasFactory;
 
-    protected $table = "chronic_diseases";
     protected $fillable = [
         'patient_id',
-        'disease',
+        'name',
+        'email',
+        'phone',
+        'amount',
     ];
 
     public function patient()
