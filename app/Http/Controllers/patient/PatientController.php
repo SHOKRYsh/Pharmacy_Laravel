@@ -7,8 +7,11 @@ use App\Models\Alarm;
 use App\Models\PatientChronicDiseases;
 use App\Models\Disease;
 use App\Models\Donation;
+use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Patient;
 use App\Models\Payment;
+use App\Models\Pharmacy;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -157,7 +160,7 @@ class PatientController extends Controller
         ]);
 
         $user = Auth::user();
-        $alarm = Payment::create([
+        $payment = Payment::create([
             'patient_id' => Auth::id(),
             'name' => $user->name,
             'email' => $user->email,
@@ -167,5 +170,72 @@ class PatientController extends Controller
 
 
         return redirect()->back()->with('status', 'Pauymet process is stored successfully!');
+    }
+    public function storeOrder(Request $request)
+    {
+        $validatedData = $request->validate([
+            'total_amount' => 'required|numeric',
+            'items.*.drug_id' => 'required|exists:drugs,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.price' => 'required|numeric|min:0',
+        ]);
+
+        $order = Order::create([
+            'patient_id' => Auth::id(),
+            'total_amount' => $request->input()['total_amount'],
+        ]);
+        foreach ($validatedData['items'] as $item) {
+            OrderItem::create([
+                'order_id' => $order->id,
+                'drug_id' => $item['drug_id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['price'],
+            ]);
+        }
+
+        return redirect()->back()->with('status', 'Order is created successfully!');
+        // return response()->json(['order' => $order]);
+    }
+
+    public function showNearestPharmacies()
+    {
+        $patient = Patient::where('user_id', Auth::user()->id)->first();
+        $patientLongitude = $patient->longitude;
+        $patientLatitude = $patient->latitude;
+
+
+        $pharmacies = Pharmacy::select('id', 'pharmacy_name', 'longitude', 'latitude')->get();
+
+
+        $nearestPharmacies = [];
+        foreach ($pharmacies as $pharmacy) {
+            $pharmacyLongitude = $pharmacy->longitude;
+            $pharmacyLatitude = $pharmacy->latitude;
+
+            $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
+
+            $nearestPharmacies[] = [
+                'id' => $pharmacy->id,
+                'name' => $pharmacy->pharmacy_name,
+                'distance' => $distance,
+            ];
+        }
+
+        usort($nearestPharmacies, function ($a, $b) {
+            return $a['distance'] <=> $b['distance'];
+        });
+
+        return response()->json($nearestPharmacies);
+    }
+
+    private function haversineDistance($lat1, $lon1, $lat2, $lon2)
+    {
+        $deltaLat = deg2rad($lat2 - $lat1);
+        $deltaLon = deg2rad($lon2 - $lon1);
+        $a = sin($deltaLat / 2) * sin($deltaLat / 2) + cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * sin($deltaLon / 2) * sin($deltaLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        $distance = 6371 * $c; // Earth's radius in km
+
+        return $distance;
     }
 }

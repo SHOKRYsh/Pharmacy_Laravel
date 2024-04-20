@@ -20,6 +20,10 @@ class Patient extends Authenticatable
         'latitude',
     ];
 
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
     public function donation()
     {
         return $this->hasMany(Donation::class, 'patient_id');
@@ -31,7 +35,7 @@ class Patient extends Authenticatable
 
     public function disease()
     {
-        return $this->hasMany(ChronicDiseases::class, 'patient_id');
+        return $this->hasMany(PatientChronicDiseases::class, 'patient_id');
     }
     public function sensitivity()
     {
