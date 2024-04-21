@@ -204,7 +204,7 @@ class PatientController extends Controller
         $patientLatitude = $patient->latitude;
 
 
-        $pharmacies = Pharmacy::select('id', 'pharmacy_name', 'longitude', 'latitude')->get();
+        $pharmacies = Pharmacy::select('pharmacist_id', 'pharmacy_name', 'longitude', 'latitude')->get();
 
 
         $nearestPharmacies = [];
@@ -213,9 +213,9 @@ class PatientController extends Controller
             $pharmacyLatitude = $pharmacy->latitude;
 
             $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
-
+            $name = User::where('id', $pharmacy->pharmacist_id)->first()->name;
             $nearestPharmacies[] = [
-                'id' => $pharmacy->id,
+                'pharmacist' => $name,
                 'name' => $pharmacy->pharmacy_name,
                 'distance' => $distance,
             ];
@@ -225,9 +225,9 @@ class PatientController extends Controller
             return $a['distance'] <=> $b['distance'];
         });
 
-        return response()->json($nearestPharmacies);
+        // return response()->json($nearestPharmacies);
+        return view("patient.Pharmacies", ["nearestPharmacies" => $nearestPharmacies]);
     }
-
     private function haversineDistance($lat1, $lon1, $lat2, $lon2)
     {
         $deltaLat = deg2rad($lat2 - $lat1);

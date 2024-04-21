@@ -81,6 +81,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('/storePayment', [PatientController::class, 'storePayment'])->name('storePayment');
 
+        Route::post('/storeOrder', [PatientController::class, 'storeOrder'])->name('storeOrder');
+
         Route::get('/showNearestPharmacies', [PatientController::class, 'showNearestPharmacies']);
     });
 });
