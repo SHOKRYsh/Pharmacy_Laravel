@@ -14,8 +14,10 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger("patient_id");
+            $table->unsignedBigInteger("pharmacy_id");
             $table->double("total_amount");
             $table->foreign("patient_id")->references("id")->on("patients")->onDelete('cascade');
+            $table->foreign("pharmacy_id")->references("id")->on("pharmacies")->onDelete('cascade');
             $table->timestamps();
         });
     }

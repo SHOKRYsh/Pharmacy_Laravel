@@ -37,14 +37,8 @@
                                         <th>ID</th>
                                         <th>Name (English)</th>
                                         <th>Name (Arabic)</th>
-                                        <th>New Price</th>
-                                        <th>Old Price</th>
-                                        <th>Active Ingredient</th>
-                                        <th>Company</th>
-                                        <th>Usage</th>
-                                        <th>Units</th>
-                                        <th>Dosage Form</th>
-                                        <th>Parcode</th>
+                                        <th>Price</th>
+                                        <th>image</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -53,14 +47,8 @@
                                             <td>{{ $item->id }}</td>
                                             <td>{{ $item->name_en }}</td>
                                             <td>{{ $item->name_ar }}</td>
-                                            <td>{{ $item->new_price }}</td>
-                                            <td>{{ $item->old_price }}</td>
-                                            <td>{{ $item->active_ingredient }}</td>
-                                            <td>{{ $item->company }}</td>
-                                            <td>{{ $item->usage }}</td>
-                                            <td>{{ $item->units }}</td>
-                                            <td>{{ $item->dosage_form }}</td>
-                                            <td>{{ $item->parcode }}</td>
+                                            <td>{{ $item->price }}</td>
+                                            <td><img src="{{ $item->image_url }}" alt="not found" class="img-thumbnail" style="max-width: 100px;"></td>
                                         </tr>
                                     @endforeach
                                 </tbody>

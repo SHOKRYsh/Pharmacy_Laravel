@@ -69,7 +69,7 @@
                                                 <tr>
                                                     <td>{{ $item->name_en }}</td>
                                                     <td>{{ $item->name_ar }}</td>
-                                                    <td>{{ $item->new_price }}</td>
+                                                    <td>{{ $item->price }}</td>
                                                     <td>
                                                         <input type="number" class="form-control quantityInput"
                                                             drugId="{{ $item->id }}" min="0" value="0">

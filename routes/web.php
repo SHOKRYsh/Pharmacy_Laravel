@@ -41,6 +41,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::prefix('/home/pharmacist/dashboard')->name('pharmacist.dashboard.')->middleware("auth")->group(function () {
 
+        Route::delete("/destroyAccount/{id}", [PharmacistController::class, 'destroyAccount'])->name("destroyAccount");
+
+        Route::get('/information', [PharmacistController::class, 'information']);
+        Route::post('/storeInformation', [PharmacistController::class, 'storeInformation'])->name('storeInformation');
+
         Route::get("/createPharmacy", [PharmacistController::class, 'createPharmacy'])->name("createPharmacy");
         Route::post("/storePharmacy", [PharmacistController::class, 'storePharmacy'])->name("storePharmacy");
 

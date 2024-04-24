@@ -11,6 +11,7 @@ class Order extends Model
 
     protected $fillable = [
         'patient_id',
+        'pharmacy_id',
         'total_amount',
     ];
 
@@ -19,7 +20,10 @@ class Order extends Model
     {
         return $this->belongsTo(Patient::class, 'patient_id');
     }
-
+    public function pharmacy()
+    {
+        return $this->belongsTo(Pharmacy::class, 'pharmacy_id');
+    }
     public function items()
     {
         return $this->hasMany(OrderItem::class);

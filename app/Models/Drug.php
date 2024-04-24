@@ -12,14 +12,8 @@ class Drug extends Model
     protected $fillable = [
         "name_en",
         "name_ar",
-        "new_price",
-        "old_price",
-        "active_ingredient",
-        "company",
-        "usage",
-        "units",
-        "dosage_form",
-        "parcode"
+        "price",
+        "image_url"
     ];
 
     public function pharmacies()

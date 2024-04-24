@@ -15,14 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string("name_en")->nullable();
             $table->string("name_ar")->nullable();
-            $table->double("new_price")->nullable();
-            $table->double("old_price")->nullable();
-            $table->string("active_ingredient")->nullable();
-            $table->string("company")->nullable();
-            $table->string("usage")->nullable();
-            $table->string("units")->nullable();
-            $table->string("dosage_form")->nullable();
-            $table->string("parcode")->nullable();
+            $table->double("price")->nullable();
+            $table->text('image_url')->nullable();
             $table->timestamps();
         });
     }

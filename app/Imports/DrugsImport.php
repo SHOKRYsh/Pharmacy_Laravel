@@ -23,28 +23,16 @@ class DrugsImport implements ToCollection, WithHeadingRow
                 $drug->update([
                     'name_en' => $row['name_en'],
                     'name_ar' => $row['name_ar'],
-                    'new_price' => $row['new_price'],
-                    'old_price' => $row['old_price'],
-                    'active_ingredient' => $row['active_ingredient'],
-                    'company' => $row['company'],
-                    'usage' => $row['usage'],
-                    'units' => $row['units'],
-                    'dosage_form' => $row['dosage_form'],
-                    'parcode' => $row['parcode'],
+                    'image_url' => $row['image_url'],
+                    'price' => $row['price'],
                 ]);
             } else {
 
                 Drug::create([
                     'name_en' => $row['name_en'],
                     'name_ar' => $row['name_ar'],
-                    'new_price' => $row['new_price'],
-                    'old_price' => $row['old_price'],
-                    'active_ingredient' => $row['active_ingredient'],
-                    'company' => $row['company'],
-                    'usage' => $row['usage'],
-                    'units' => $row['units'],
-                    'dosage_form' => $row['dosage_form'],
-                    'parcode' => $row['parcode'],
+                    'image_url' => $row['image_url'],
+                    'price' => $row['price'],
                 ]);
             }
         }
