@@ -80,7 +80,9 @@ Route::prefix('/home/patient/dashboard')->group(function () {
 
     Route::get('/getAllDrugs', [PatientController::class, 'getAllDrugs']);
 
-    Route::get('/showNearestPharmacies/{id}', [PatientController::class, 'showNearestPharmacies']);
+    Route::get('/showNearestPharmacies/user/{id}', [PatientController::class, 'showNearestPharmacies']);
+
+    Route::get('/showNearestPharmacies/user/{id}/drug/{drug_id}', [PatientController::class, 'showNearestPharmaciesWithDrug']);
 
     Route::post('/storeDonation', [PatientController::class, 'storeDonation']);
     Route::get('/getAllDonations/{patient_id}', [PatientController::class, 'getAllDonations']);

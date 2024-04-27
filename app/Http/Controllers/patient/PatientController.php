@@ -150,6 +150,50 @@ class PatientController extends Controller
         return response()->json(['message' => $nearestPharmacies], 201);
         // return view("patient.Pharmacies", ["nearestPharmacies" => $nearestPharmacies]);
     }
+
+    public function showNearestPharmaciesWithDrug($id, $drug_id)
+    {
+        $patient = Patient::where('user_id', $id)->first();
+
+        if (!$patient) {
+            return response()->json(['message' => "The user id is wrong, check it again"], 400);
+        }
+
+        $patientLongitude = $patient->longitude;
+        $patientLatitude = $patient->latitude;
+
+        $pharmacies = Pharmacy::with('drugs')
+            ->select('id', 'pharmacy_name', 'longitude', 'latitude')
+            ->get();
+
+        $nearestPharmacies = [];
+        foreach ($pharmacies as $pharmacy) {
+            $hasDrug = $pharmacy->drugs()->where('id', $drug_id)->exists();
+            if (!$hasDrug) {
+                continue;
+            }
+
+            $pharmacyLongitude = $pharmacy->longitude;
+            $pharmacyLatitude = $pharmacy->latitude;
+
+            $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
+            $name = User::where('id', $pharmacy->pharmacist_id)->first()->name;
+            $nearestPharmacies[] = [
+                'pharmacy_id' => $pharmacy->id,
+                'pharmacist' => $name,
+                'name' => $pharmacy->pharmacy_name,
+                'distance' => $distance,
+            ];
+        }
+
+        usort($nearestPharmacies, function ($a, $b) {
+            return $a['distance'] <=> $b['distance'];
+        });
+
+        return response()->json(['message' => $nearestPharmacies], 201);
+    }
+
+
     private function haversineDistance($lat1, $lon1, $lat2, $lon2)
     {
         $deltaLat = deg2rad($lat2 - $lat1);
