@@ -8,7 +8,6 @@ use App\Models\PatientChronicDiseases;
 use App\Models\Disease;
 use App\Models\Donation;
 use App\Models\Drug;
-use App\Models\Message;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Patient;
@@ -153,6 +152,7 @@ class PatientController extends Controller
 
     public function showNearestPharmaciesWithDrug($id, $drug_id)
     {
+
         $patient = Patient::where('user_id', $id)->first();
 
         if (!$patient) {
@@ -163,27 +163,24 @@ class PatientController extends Controller
         $patientLatitude = $patient->latitude;
 
         $pharmacies = Pharmacy::with('drugs')
-            ->select('id', 'pharmacy_name', 'longitude', 'latitude')
+            ->select('id', 'pharmacist_id', 'pharmacy_name', 'longitude', 'latitude')
             ->get();
 
         $nearestPharmacies = [];
         foreach ($pharmacies as $pharmacy) {
-            $hasDrug = $pharmacy->drugs()->where('id', $drug_id)->exists();
-            if (!$hasDrug) {
-                continue;
-            }
-
             $pharmacyLongitude = $pharmacy->longitude;
             $pharmacyLatitude = $pharmacy->latitude;
 
-            $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
-            $name = User::where('id', $pharmacy->pharmacist_id)->first()->name;
-            $nearestPharmacies[] = [
-                'pharmacy_id' => $pharmacy->id,
-                'pharmacist' => $name,
-                'name' => $pharmacy->pharmacy_name,
-                'distance' => $distance,
-            ];
+            $hasDrug = $pharmacy->drugs()->where('drugs.id', $drug_id)->exists();
+            if ($hasDrug) {
+                $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
+                $name = User::where('id', $pharmacy->pharmacist_id)->first()->name;
+                $nearestPharmacies[] = [
+                    'pharmacist' => $name,
+                    'name' => $pharmacy->pharmacy_name,
+                    'distance' => $distance,
+                ];
+            }
         }
 
         usort($nearestPharmacies, function ($a, $b) {
@@ -192,6 +189,8 @@ class PatientController extends Controller
 
         return response()->json(['message' => $nearestPharmacies], 201);
     }
+
+
 
 
     private function haversineDistance($lat1, $lon1, $lat2, $lon2)
@@ -242,7 +241,7 @@ class PatientController extends Controller
             return response()->json(['message' => 'Patient not found'], 404);
         }
 
-        $donations = $patient->donations;
+        $donations = $patient->donation;
 
         return response()->json(['message' => $donations], 201);
     }
@@ -319,7 +318,7 @@ class PatientController extends Controller
             return response()->json(['message' => 'Patient not found'], 404);
         }
 
-        $alarms = $patient->alarms;
+        $alarms = $patient->alarm;
 
         return response()->json(['message' => $alarms], 201);
     }
@@ -401,6 +400,7 @@ class PatientController extends Controller
     {
 
         $patient = Patient::find($patient_id);
+        $patinet_User_Id = $patient->user_id;
         if (!$patient) {
             return response()->json(['message' => "The patient id is wrong ,check it again"], 400);
         }
@@ -409,7 +409,7 @@ class PatientController extends Controller
             'amount' => 'required',
         ]);
 
-        $user = User::where("id", $patient_id)->first();
+        $user = User::where("id", $patinet_User_Id)->first();
         // $user = Auth::user();
         $payment = Payment::create([
             'patient_id' => $patient_id,

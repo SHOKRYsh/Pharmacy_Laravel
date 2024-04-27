@@ -5,14 +5,13 @@ namespace App\Http\Controllers\pharmacist;
 use App\Http\Controllers\Controller;
 use App\Models\Drug;
 use App\Models\Order;
-use App\Models\Patient;
 use App\Models\Pharmacist;
 use App\Models\Pharmacy;
 use App\Models\PharmacyDrug;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Phar;
+use Illuminate\Support\Facades\Validator;
 
 class PharmacistController extends Controller
 {
@@ -192,21 +191,23 @@ class PharmacistController extends Controller
 
     public function storeDrugs(Request $request)
     {
-        //String
-        // dd($request->input('selected_drugs')); //"[{"pharmacyId":"1","drugId":"1","quantity":"10"}]"
-
-        // $selectedDrugs = json_decode($request->input('selected_drugs'), true);
-
-
         $jsonData = $request->getContent();
         $selectedDrugs = json_decode($jsonData, true);
 
-        if (!is_array($selectedDrugs)) {
-            return response()->json(['message' => 'Invalid input format'], 400);
+        if ($selectedDrugs === null) {
+            return response()->json(['message' => 'Invalid JSON format'], 400);
         }
 
-        $pharmacyDrug = null;
-        $pharmacy_drug = null;
+        $validator = Validator::make(['selected_drugs' => $selectedDrugs], [
+            'selected_drugs' => 'required|array',
+            'selected_drugs.*.pharmacyId' => 'required|exists:pharmacies,id',
+            'selected_drugs.*.drugId' => 'required|exists:drugs,id',
+            'selected_drugs.*.quantity' => 'required|integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['message' => 'Validation error', 'errors' => $validator->errors()], 400);
+        }
 
         foreach ($selectedDrugs as $drug) {
             $pharmacyDrug = PharmacyDrug::where('pharmacy_id', $drug['pharmacyId'])
@@ -217,22 +218,15 @@ class PharmacistController extends Controller
                 $pharmacyDrug->quantity += $drug['quantity'];
                 $pharmacyDrug->save();
             } else {
-                $pharmacy_drug = PharmacyDrug::create([
+                PharmacyDrug::create([
                     'pharmacy_id' => $drug['pharmacyId'],
                     'drug_id' => $drug['drugId'],
                     'quantity' => $drug['quantity'],
                 ]);
             }
         }
-        if ($pharmacyDrug) {
-            return response()->json(['message' => 'Drugs updated to pharmacy successfully!'], 201);
-        }
-        if ($pharmacy_drug) {
-            return response()->json(['message' => 'Drugs added to pharmacy successfully!'], 201);
-        } else {
-            return response()->json(['message' => "Sorry , we can't add the drugs to the Pharmacy"], 400);
-        }
-        // return redirect()->back()->with('success', 'Drugs added successfully!');
+
+        return response()->json(['message' => 'Drugs added/updated to pharmacy successfully!'], 201);
     }
 
     public function showPharmacies($pharmacist_id)
