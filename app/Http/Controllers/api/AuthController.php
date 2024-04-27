@@ -86,6 +86,7 @@ class AuthController extends Controller
             $patient = Patient::create(array_filter($patientData));
         }
 
+        $user->sendEmailVerificationNotification();
         return response()->json(['message' => 'done'], 201);
     }
 
