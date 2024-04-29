@@ -28,14 +28,19 @@ class AuthController extends Controller
             return response()->json(['message' => $validator->errors()], 422);
         }
 
-        $credentials = [
-            'email' => $request->input('userLogin'),
-            'password' => $request->input('password'),
-            'user_type' => $request->input('user_type')
-        ];
+        $userLogin = $request->input('userLogin');
+        $password = $request->input('password');
+        $user_type = $request->input('user_type');
 
-        if (Auth::attempt($credentials)) {
-            return response()->json(['message' => 'done'], 201);
+        $user = User::where(function ($query) use ($userLogin) {
+            $query->where('email', $userLogin)
+                ->orWhere('phone', $userLogin);
+        })->where('user_type', $user_type)->first();
+
+        if ($user && Auth::attempt(['email' => $user->email, 'password' => $password])) {
+            $token = $user->createToken('PharmyGo')->accessToken;
+            $hashedToken = hash('sha256', $token);
+            return response()->json(['message' => Auth::user(), "token" => $hashedToken], 201);
         } else {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
@@ -87,7 +92,9 @@ class AuthController extends Controller
         }
 
         $user->sendEmailVerificationNotification();
-        return response()->json(['message' => 'done'], 201);
+        $token = $user->createToken('PharmyGo')->accessToken;
+        $hashedToken = hash('sha256', $token);
+        return response()->json(['message' => $user, "token" => $hashedToken], 201);
     }
 
     public function uploadImage($image, $destination)
