@@ -28,8 +28,6 @@ Route::post("/login", [AuthController::class, "login"]);
 Route::post("/register", [AuthController::class, "register"]);
 Route::post("/password/reset", [AuthController::class, "reset"]);
 
-
-
 /*
 ***********************************************************************************************************
 *******************************************PHARMACIST ROUTES **********************************************

@@ -134,11 +134,14 @@ class PatientController extends Controller
             $pharmacyLatitude = $pharmacy->latitude;
 
             $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
-            $name = User::where('id', $pharmacy->pharmacist_id)->first()->name;
+            $name = $pharmacy->pharmacist->user->name;
+
             $nearestPharmacies[] = [
                 'pharmacist' => $name,
                 'name' => $pharmacy->pharmacy_name,
                 'distance' => $distance,
+                'longitude' => $pharmacy->longitude,
+                'latitude' => $pharmacy->latitude,
             ];
         }
 
@@ -174,11 +177,13 @@ class PatientController extends Controller
             $hasDrug = $pharmacy->drugs()->where('drugs.id', $drug_id)->exists();
             if ($hasDrug) {
                 $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
-                $name = User::where('id', $pharmacy->pharmacist_id)->first()->name;
+                $name = $pharmacy->pharmacist->user->name;
                 $nearestPharmacies[] = [
                     'pharmacist' => $name,
                     'name' => $pharmacy->pharmacy_name,
                     'distance' => $distance,
+                    'longitude' => $pharmacy->longitude,
+                    'latitude' => $pharmacy->latitude,
                 ];
             }
         }
