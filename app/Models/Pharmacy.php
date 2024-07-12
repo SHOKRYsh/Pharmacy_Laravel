@@ -14,8 +14,8 @@ class Pharmacy extends Model
         'pharmacy_name',
         'longitude',
         'latitude',
+        'delivery',
     ];
-
 
     public function pharmacist()
     {

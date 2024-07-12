@@ -31,6 +31,12 @@ Route::prefix("admin/")->name("admin.")->group(function () {
         Route::post('dashboard/upload', [AdminController::class, "upload"])->name('upload.drugs');
 
         Route::get('dashboard/donation', [AdminController::class, "donation"])->name('donation');
+
+        Route::get('/admin/patients', [AdminController::class, 'showPatients'])->name('patients');
+        Route::get('/admin/pharmacists', [AdminController::class, 'showPharmacists'])->name('pharmacists');
+        Route::post('/admin/remove/user/{user_id}', [AdminController::class, 'removeUser'])->name('remove.user');
+        Route::get('/admin/pharmacies', [AdminController::class, 'showPharmacies'])->name('pharmacies');
+        Route::get('/admin/orders', [AdminController::class, 'showOrders'])->name('orders');
     });
 
     Route::controller(AdminController::class)->group(function () {

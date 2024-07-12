@@ -1,28 +1,32 @@
-@extends('layouts.app')
+@extends('admin.layouts.app')
 
 @section('content')
     <div class="container">
-        <h4 class="text-center">Approval Page</h4>
+        <h4 class="text-center mt-4 mb-5">Donation Page</h4>
 
-        <table class="table table-bordered table-striped text-center">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Drug name</th>
-                    <th>Quantity</th>
-                    <th>Address</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach ($donations as $donation)
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped text-center">
+                <thead class="bg-primary text-white">
                     <tr>
-                        <td>{{ $name }}</td>
-                        <td>{{ $donation->drug_name }}</td>
-                        <td>{{ $donation->quantity }}</td>
-                        <td>{{ $donation->address }}</td>
+                        <th>Name</th>
+                        <th>Drug Name</th>
+                        <th>Quantity</th>
+                        <th>Address</th>
+                        <th>Expiry Date</th>
                     </tr>
-                @endforeach
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    @foreach ($donations as $donation)
+                        <tr>
+                            <td>{{ $donation->patient->user->name }}</td>
+                            <td>{{ $donation->drug_name }}</td>
+                            <td>{{ $donation->quantity }}</td>
+                            <td>{{ $donation->address }}</td>
+                            <td>{{ $donation->expiry_date }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </div>
 @endsection

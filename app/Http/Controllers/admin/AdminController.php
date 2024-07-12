@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Patient;
+use App\Models\Pharmacy;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use App\Models\Admin;
@@ -13,8 +15,10 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 use App\Imports\DrugsImport;
+use App\Models\Comments;
 use App\Models\Donation;
 use App\Models\Drug;
+use App\Models\Order;
 use Maatwebsite\Excel\Facades\Excel;
 
 
@@ -35,7 +39,23 @@ class AdminController extends Controller
 
     public function dashboard()
     {
-        return view('admin.dashboard');
+        $totalUsers = User::count();
+        $totalPatients = Patient::count();
+        $totalPharmacicts = Pharmacist::count();
+        $totalOrders = Order::count();
+        $totalDonations = Donation::count();
+
+        $comments = Comments::latest()->take(10)->get();
+
+
+        return view('admin.dashboard', [
+            'totalUsers' => $totalUsers,
+            'totalPatients' => $totalPatients,
+            'totalPharmacicts' => $totalPharmacicts,
+            'totalOrders' => $totalOrders,
+            'totalDonations' => $totalDonations,
+            'comments' => $comments,
+        ]);
     }
     public function login()
     {
@@ -165,5 +185,50 @@ class AdminController extends Controller
         $name = Auth::user()->name;
         $donations = Donation::get();
         return view('admin.functions.donation', ["donations" => $donations, "name" => $name]);
+    }
+
+
+    public function showPatients()
+    {
+        $patients = User::where('user_type', 'patient')->get();
+        return view('admin.functions.patients', ['patients' => $patients]);
+    }
+
+    public function showPharmacists()
+    {
+        $pharmacists = User::where('user_type', 'pharmacist')->get();
+        return view('admin.functions.pharmacists', ['pharmacists' => $pharmacists]);
+    }
+
+    public function removeUser(Request $request, $user_id)
+    {
+        $user = User::find($user_id);
+
+        if (!$user) {
+            return back()->with('error', 'User not found');
+        }
+
+        $user->delete();
+
+        return back()->with('status', 'User removed successfully');
+    }
+
+
+    public function showPharmacies()
+    {
+        $pharmacies = Pharmacy::get();
+
+        return view('admin.functions.pharmacies', [
+            'pharmacies' => $pharmacies
+        ]);
+    }
+
+    public function showOrders()
+    {
+        $orders = Order::with(['items', 'patient', 'pharmacy'])->get();
+
+        return view('admin.functions.orders', [
+            'orders' => $orders
+        ]);
     }
 }

@@ -92,17 +92,20 @@ class PharmacistController extends Controller
             'pharmacy_name' => 'required|string',
             'longitude' => 'required|numeric',
             'latitude' => 'required|numeric',
+            'delivery' => 'boolean'
         ]);
 
         $pharmacy_name = $request->input('pharmacy_name');
         $longitude = $request->input('longitude');
         $latitude = $request->input('latitude');
+        $delivery = $request->input('delivery');
 
 
         $existingPharmacy = Pharmacy::where('pharmacist_id', $pharmacist_id)
             ->where('pharmacy_name', $pharmacy_name)
             ->where('longitude', $longitude)
             ->where('latitude', $latitude)
+            ->where('delivery', $delivery)
             ->first();
 
         if ($existingPharmacy) {
@@ -115,6 +118,7 @@ class PharmacistController extends Controller
             'pharmacy_name' => $pharmacy_name,
             'longitude' => $longitude,
             'latitude' => $latitude,
+            'delivery' => $delivery,
         ]);
 
 
@@ -135,6 +139,7 @@ class PharmacistController extends Controller
             'pharmacy_name' => 'string',
             'longitude' => 'numeric',
             'latitude' => 'numeric',
+            'delivery' => 'boolean',
         ]);
 
         $id = $request->input("pharmacy_id");
@@ -154,6 +159,9 @@ class PharmacistController extends Controller
 
         if ($request->has('latitude')) {
             $pharmacy->latitude = $request->input('latitude');
+        }
+        if ($request->has('delivery')) {
+            $pharmacy->delivery = $request->input('delivery');
         }
 
         $pharmacy->save();
@@ -239,9 +247,11 @@ class PharmacistController extends Controller
 
     public function showPharmacyDrugs($pharmacyId)
     {
-        $pharmacy = Pharmacy::findOrFail($pharmacyId);
-        $drugs = $pharmacy->drugs()->get();
-        return response()->json(['message' => $drugs], 201);
+        $drugsWithQuantities = PharmacyDrug::where('pharmacy_id', $pharmacyId)
+            ->join('drugs', 'pharmacy_drug.drug_id', '=', 'drugs.id')
+            ->select('drugs.*', 'pharmacy_drug.quantity')
+            ->get();
+        return response()->json(['message' => $drugsWithQuantities], 201);
 
         // return view('pharmacist.show_drugs', ["pharmacy" => $pharmacy, "drugs" => $drugs]);
     }
@@ -267,22 +277,56 @@ class PharmacistController extends Controller
 
     public function getClients($pharmacy_id)
     {
-        $orders = Order::where('pharmacy_id', $pharmacy_id)->with('patient', 'items')->get();
+        $orders = Order::where('pharmacy_id', $pharmacy_id)
+            ->with(['patient.user', 'items.drug'])
+            ->get();
 
         $patients = [];
         foreach ($orders as $order) {
-            $patientId = $order->patient->id;
+            $patient = $order->patient;
+            $user = $patient->user;
+            $patientId = $patient->id;
 
             if (!isset($patients[$patientId])) {
                 $patients[$patientId] = [
-                    'patient' => $order->patient,
+                    'patient' => [
+                        'id' => $patient->id,
+                        'user_id' => $patient->user_id,
+                        'image_url' => $patient->image_url,
+                        'address' => $patient->address,
+                        'longitude' => $patient->longitude,
+                        'latitude' => $patient->latitude,
+                        'created_at' => $patient->created_at,
+                        'updated_at' => $patient->updated_at,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'phone' => $user->phone,
+                    ],
                     'orders' => [],
                 ];
             }
 
+            $orderItems = [];
+            foreach ($order->items as $item) {
+                $orderItems[] = [
+                    'id' => $item->id,
+                    'order_id' => $item->order_id,
+                    'quantity' => $item->quantity,
+                    'price' => $item->price,
+                    'created_at' => $item->created_at,
+                    'updated_at' => $item->updated_at,
+                    'drug' => $item->drug,
+                ];
+            }
+
             $patients[$patientId]['orders'][] = [
-                'order' => $order,
-                'items' => $order->items,
+                'id' => $order->id,
+                'pharmacy_id' => $order->pharmacy_id,
+                'total_amount' => $order->total_amount,
+                'created_at' => $order->created_at,
+                'updated_at' => $order->updated_at,
+                'finished' => $order->finished,
+                'items' => $orderItems,
             ];
         }
 
@@ -291,9 +335,31 @@ class PharmacistController extends Controller
 
 
 
+
+
     public function returnPharmacist(Request $request)
     {
         // $pharmacyId=$request->id;
         return $pharmacist = Pharmacist::with("pharmacies")->find(Auth::id());
+    }
+
+
+    public function getInabilityDrugs($pharmacy_id)
+    {
+        $drugs = PharmacyDrug::where('pharmacy_id', $pharmacy_id)
+            ->where('quantity', '<=', 3)
+            ->with('pharmacy', 'drug')
+            ->get();
+
+        $transformedDrugs = $drugs->map(function ($item) {
+            return [
+                'pharmacy_drug_id' => $item->id,
+                'pharmacy' => $item->pharmacy,
+                'drug' => $item->drug,
+                'quantity' => $item->quantity,
+            ];
+        });
+
+        return response()->json(['message' => $transformedDrugs], 200);
     }
 }

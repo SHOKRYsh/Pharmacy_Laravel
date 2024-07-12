@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\api\AuthController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\CommentController;
 use App\Http\Controllers\patient\PatientController;
 use App\Http\Controllers\pharmacist\PharmacistController;
 use Illuminate\Http\Request;
@@ -57,6 +58,7 @@ Route::prefix('/home/pharmacist/dashboard')->group(function () {
     Route::get('/getAllDrugs', [PharmacistController::class, 'getAllDrugs']);
 
     Route::get('/pharmacy/{pharmacy_id}/getClients', [PharmacistController::class, 'getClients']);
+    Route::get('/pharmacy/{pharmacy_id}/get-inability-drugs', [PharmacistController::class, 'getInabilityDrugs']);
 });
 
 
@@ -99,8 +101,18 @@ Route::prefix('/home/patient/dashboard')->group(function () {
 
     Route::get('/{patient_id}/getAllOrders', [PatientController::class, 'getAllOrders']);
     Route::post('/storeOrder/patient/{patient_id}/pharmacy/{pharmacy_id}', [PatientController::class, 'storeOrder']);
+    Route::put('patient/orders/{order_id}/finished', [PatientController::class, 'updateOrderStatus']);
+    Route::delete('/delete/{patient_id}/order/{order_id}', [PatientController::class, 'deleteOrder']);
+
+    Route::get('/{patient_id}/getAllCarts', [PatientController::class, 'getAllCarts']);
+    Route::post('/storeCart/patient/{patient_id}/pharmacy/{pharmacy_id}', [PatientController::class, 'storeCart']);
+    Route::delete('/delete/{patient_id}/cart/{cart_id}', [PatientController::class, 'deleteCart']);
+
+    Route::post('/extract-medicine-name', [PatientController::class, 'extractMedicineName']);
 });
 
 ////////////
 Route::post("/sendMessage/sender/{sender_id}/reciever/{reciever_id}", [ChatController::class, 'sendMessage']);
 Route::get("/getMessages/sender/{sender_id}/reciever/{reciever_id}", [ChatController::class, 'getmessages']);
+///////////
+Route::post('/{user_id}/add/comment', [CommentController::class, 'addComment'])->name('comments.add');

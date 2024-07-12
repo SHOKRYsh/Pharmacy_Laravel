@@ -15,6 +15,7 @@ class Donation extends Model
         'drug_name',
         'quantity',
         'address',
+        'expiry_date'
     ];
 
 

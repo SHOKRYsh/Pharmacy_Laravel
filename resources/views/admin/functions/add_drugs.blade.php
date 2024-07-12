@@ -1,61 +1,74 @@
 @extends('admin.layouts.app')
 
 @section('content')
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-12 mt-5">
+    <div class="container-fluid">
+        <div class="row mt-5">
+            <div class="col-md-12">
                 @if (session('status'))
-                <div class="alert alert-success">{{ session('status') }}</div>
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('status') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                 @endif
 
-
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="mb-0">Import Excel Data into Database</h4>
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">
+                            <i class="fas fa-file-excel"></i> Import Excel Data into Database
+                        </h4>
                     </div>
                     <div class="card-body">
 
                         <form action="{{ route('admin.upload.drugs') }}" method="POST" enctype="multipart/form-data">
                             @csrf
 
-                            <div class="input-group mb-3">
-                                <input type="file" name="drugs" class="form-control" required />
-                                <button type="submit" class="btn btn-primary">Import</button>
+                            <div class="mb-3">
+                                <label for="drugs" class="form-label">Choose Excel File:</label>
+                                <div class="input-group">
+                                    <input type="file" name="drugs" class="form-control" id="drugs" required>
+                                    <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> Import</button>
+                                </div>
                             </div>
 
                         </form>
 
+                        <hr>
+
                         <div class="mb-3">
                             <input type="text" id="search" class="form-control" placeholder="Search...">
                         </div>
-                        <hr>
-                        <hr>
+
                         <div class="table-responsive">
-                            <table class="table table-bordered table-striped">
+                            <table class="table table-striped table-bordered">
                                 <thead>
                                     <tr>
                                         <th>ID</th>
                                         <th>Name (English)</th>
                                         <th>Name (Arabic)</th>
                                         <th>Price</th>
-                                        <th>image</th>
+                                        <th>Image</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach ($drugs as $item)
+                                    @forelse ($drugs as $item)
                                         <tr>
                                             <td>{{ $item->id }}</td>
                                             <td>{{ $item->name_en }}</td>
                                             <td>{{ $item->name_ar }}</td>
                                             <td>{{ $item->price }}</td>
-                                            <td><img src="{{ $item->image_url }}" alt="not found" class="img-thumbnail" style="max-width: 100px;"></td>
+                                            <td>
+                                                <img src="{{ $item->image_url }}" alt="Image" class="img-thumbnail" style="max-width: 100px;">
+                                            </td>
                                         </tr>
-                                    @endforeach
+                                    @empty
+                                        <tr>
+                                            <td colspan="5" class="text-center">No drugs found.</td>
+                                        </tr>
+                                    @endforelse
                                 </tbody>
                             </table>
                             {{ $drugs->links('pagination::bootstrap-5') }}
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -65,16 +78,18 @@
 
 @section('scripts')
 <script>
-    $('#search').on('input', function() {
-        var searchText = $(this).val().toLowerCase();
-        $('tbody tr').each(function() {
-            var drugNameEn = $(this).find('td:eq(1)').text().toLowerCase();
-            var drugNameAr = $(this).find('td:eq(2)').text().toLowerCase();
-            if (drugNameEn.includes(searchText) || drugNameAr.includes(searchText)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
+    $(document).ready(function() {
+        $('#search').on('input', function() {
+            var searchText = $(this).val().toLowerCase();
+            $('tbody tr').each(function() {
+                var drugNameEn = $(this).find('td:eq(1)').text().toLowerCase();
+                var drugNameAr = $(this).find('td:eq(2)').text().toLowerCase();
+                if (drugNameEn.includes(searchText) || drugNameAr.includes(searchText)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
         });
     });
 </script>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\patient;
 
 use App\Http\Controllers\Controller;
 use App\Models\Alarm;
+use App\Models\Cart;
+use App\Models\CartItem;
 use App\Models\PatientChronicDiseases;
 use App\Models\Disease;
 use App\Models\Donation;
@@ -13,9 +15,13 @@ use App\Models\OrderItem;
 use App\Models\Patient;
 use App\Models\Payment;
 use App\Models\Pharmacy;
+use App\Models\PharmacyDrug;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\Process\Process;
+use Symfony\Component\Process\Exception\ProcessFailedException;
+use Illuminate\Support\Facades\Http;
 
 class PatientController extends Controller
 {
@@ -125,7 +131,7 @@ class PatientController extends Controller
         $patientLongitude = $patient->longitude;
         $patientLatitude = $patient->latitude;
 
-        $pharmacies = Pharmacy::select('pharmacist_id', 'pharmacy_name', 'longitude', 'latitude')->get();
+        $pharmacies = Pharmacy::select('id', 'pharmacist_id', 'pharmacy_name', 'longitude', 'latitude', 'delivery')->get();
 
 
         $nearestPharmacies = [];
@@ -137,11 +143,13 @@ class PatientController extends Controller
             $name = $pharmacy->pharmacist->user->name;
 
             $nearestPharmacies[] = [
+                'pharmacy_id' => $pharmacy->id,
                 'pharmacist' => $name,
                 'name' => $pharmacy->pharmacy_name,
                 'distance' => $distance,
                 'longitude' => $pharmacy->longitude,
                 'latitude' => $pharmacy->latitude,
+                'delivery' => $pharmacy->delivery,
             ];
         }
 
@@ -166,7 +174,7 @@ class PatientController extends Controller
         $patientLatitude = $patient->latitude;
 
         $pharmacies = Pharmacy::with('drugs')
-            ->select('id', 'pharmacist_id', 'pharmacy_name', 'longitude', 'latitude')
+            ->select('id', 'pharmacist_id', 'pharmacy_name', 'longitude', 'latitude', 'delivery')
             ->get();
 
         $nearestPharmacies = [];
@@ -175,15 +183,23 @@ class PatientController extends Controller
             $pharmacyLatitude = $pharmacy->latitude;
 
             $hasDrug = $pharmacy->drugs()->where('drugs.id', $drug_id)->exists();
+            $pharmacyDrug = PharmacyDrug::where('pharmacy_id', $pharmacy->id)
+                ->where('drug_id', $drug_id)
+                ->first();
+
             if ($hasDrug) {
                 $distance = $this->haversineDistance($patientLatitude, $patientLongitude, $pharmacyLatitude, $pharmacyLongitude);
                 $name = $pharmacy->pharmacist->user->name;
+                // $quantity=$pharmacy->;
                 $nearestPharmacies[] = [
+                    'pharmacy_id' => $pharmacy->id,
                     'pharmacist' => $name,
                     'name' => $pharmacy->pharmacy_name,
                     'distance' => $distance,
                     'longitude' => $pharmacy->longitude,
                     'latitude' => $pharmacy->latitude,
+                    'delivery' => $pharmacy->delivery,
+                    'quantity' => $pharmacyDrug->quantity,
                 ];
             }
         }
@@ -221,6 +237,7 @@ class PatientController extends Controller
             'drug_name' => 'required|string',
             'quantity' => 'required|numeric',
             'address' => 'required|string',
+            'expiry_date' => 'date',
         ]);
 
         $patient = Patient::find($request->input()['patient_id']);
@@ -233,6 +250,7 @@ class PatientController extends Controller
             'drug_name' => $request->input()['drug_name'],
             'quantity' => $request->input()['quantity'],
             'address' => $request->input()['address'],
+            'expiry_date' => $request->input('expiry_date'),
         ]);
 
         return response()->json(['message' => "Donation is Confirmed successfully"], 201);
@@ -271,6 +289,7 @@ class PatientController extends Controller
             'drug_name' => 'string',
             'quantity' => 'numeric',
             'address' => 'string',
+            'expiry_date' => 'date',
         ]);
 
         $donation = Donation::where('patient_id', $patient_id)
@@ -483,8 +502,216 @@ class PatientController extends Controller
             return response()->json(['message' => "The patient id is wrong, check it again"], 400);
         }
 
-        $orders = Order::with('items')->where('patient_id', $patient_id)->get();
+        $orders = Order::with(['items.drug', 'pharmacy'])
+            ->where('patient_id', $patient_id)
+            ->get();
+
+        $orders = $orders->map(function ($order) {
+            return [
+                'id' => $order->id,
+                'patient_id' => $order->patient_id,
+                'total_amount' => $order->total_amount,
+                'created_at' => $order->created_at,
+                'updated_at' => $order->updated_at,
+                'pharmacy' => $order->pharmacy,
+                'items' => $order->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                        'created_at' => $item->created_at,
+                        'updated_at' => $item->updated_at,
+                        'drug' => $item->drug,
+                    ];
+                }),
+                'finished' => $order->finished,
+            ];
+        });
 
         return response()->json(['message' => $orders], 200);
+    }
+
+
+    public function updateOrderStatus(Request $request, $order_id)
+    {
+        $request->validate([
+            'finished' => 'required|boolean',
+        ]);
+
+        $order = Order::find($order_id);
+        if (!$order) {
+            return response()->json(['message' => "Order not found"], 404);
+        }
+
+        $order->finished = $request->input('finished');
+        $order->save();
+
+        return response()->json(['message' => "Order status updated successfully", 'order' => $order], 200);
+    }
+
+    public function deleteOrder($patient_id, $order_id)
+    {
+        $order = Order::where('patient_id', $patient_id)
+            ->where('id', $order_id)
+            ->first();
+
+        if (!$order) {
+            return response()->json(['message' => 'order not found'], 404);
+        }
+
+        $order->delete();
+        return response()->json(['message' => 'order deleted successfully'], 201);
+    }
+
+
+
+    public function storeCart(Request $request, $patient_id, $pharmacy_id)
+    {
+        $patient = Patient::find($patient_id);
+        if (!$patient) {
+            return response()->json(['message' => "The patient id is wrong, check it again"], 400);
+        }
+
+        $pharmacy = Pharmacy::find($pharmacy_id);
+        if (!$pharmacy) {
+            return response()->json(['message' => "The pharmacy isn't found, check it again"], 400);
+        }
+
+        $request->validate([
+            'items' => 'required|array|min:1',
+            'items.*.drug_id' => 'required|exists:drugs,id',
+            'items.*.quantity' => 'required|numeric|min:1',
+        ]);
+
+        $cart = Cart::create([
+            'patient_id' => $patient_id,
+            'pharmacy_id' => $pharmacy_id,
+            'total_amount' => 0
+        ]);
+
+        $totalAmount = 0;
+
+        foreach ($request->input('items') as $item) {
+            $drug = Drug::find($item['drug_id']);
+            if (!$drug) {
+                return response()->json(['message' => "Drug with ID {$item['drug_id']} not found"], 404);
+            }
+
+            $cartItem = CartItem::create([
+                'cart_id' => $cart->id,
+                'drug_id' => $item['drug_id'],
+                'quantity' => $item['quantity'],
+                'price' => $item['quantity'] * $drug->price,
+            ]);
+
+            $totalAmount += $cartItem->price;
+        }
+
+        $cart->total_amount = $totalAmount;
+        $cart->save();
+
+        return response()->json(['message' => 'Cart is created successfully'], 201);
+    }
+
+    public function getAllCarts($patient_id)
+    {
+        $patient = Patient::find($patient_id);
+        if (!$patient) {
+            return response()->json(['message' => "The patient id is wrong, check it again"], 400);
+        }
+
+        $carts = Cart::with(['items.drug', 'pharmacy'])
+            ->where('patient_id', $patient_id)
+            ->get();
+
+        $carts = $carts->map(function ($cart) {
+            return [
+                'id' => $cart->id,
+                'patient_id' => $cart->patient_id,
+                'total_amount' => $cart->total_amount,
+                'created_at' => $cart->created_at,
+                'updated_at' => $cart->updated_at,
+                'pharmacy' => $cart->pharmacy,
+                'items' => $cart->items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'quantity' => $item->quantity,
+                        'price' => $item->price,
+                        'created_at' => $item->created_at,
+                        'updated_at' => $item->updated_at,
+                        'drug' => $item->drug,
+                    ];
+                }),
+            ];
+        });
+
+        return response()->json(['message' => $carts], 200);
+    }
+
+    public function deleteCart($patient_id, $cart_id)
+    {
+        $cart = Cart::where('patient_id', $patient_id)
+            ->where('id', $cart_id)
+            ->first();
+
+        if (!$cart) {
+            return response()->json(['message' => 'cart not found'], 404);
+        }
+
+        $cart->delete();
+        return response()->json(['message' => 'cart deleted successfully'], 201);
+    }
+
+
+
+    // public function extractMedicineName(Request $request)
+    // {
+    //     $request->validate([
+    //         'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+    //     ]);
+
+    //     $image = $request->file('image');
+    //     $imagePath = $image->store('images', 'public');
+    //     $fullImagePath = storage_path('app/public/' . $imagePath);
+
+    //     $scriptPath = base_path('app/scripts/ocr_script.py');
+
+    //     $pythonPath = '/usr/bin/python3.6';
+
+    //     try {
+    //         $process = new Process([$pythonPath, $scriptPath, $fullImagePath]);
+    //         $process->run();
+
+    //         if (!$process->isSuccessful()) {
+    //             throw new ProcessFailedException($process);
+    //         }
+
+    //         $output = $process->getOutput();
+
+    //         return response()->json(['output' => $output]);
+    //     } catch (ProcessFailedException $exception) {
+    //         return response()->json(['error' => $exception->getMessage()], 500);
+    //     }
+    // }
+    public function extractMedicineName(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $image = $request->file('image');
+        $response = Http::withOptions(['verify' => false])
+            ->attach(
+                'image',
+                file_get_contents($image->getPathname()),
+                $image->getClientOriginalName()
+            )
+            ->post('https://shokrymansor123.ocr.repl.co/extract-medicine-name');
+
+        if ($response->failed()) {
+            return response()->json(['error' => 'Failed to contact OCR service'], 500);
+        }
+
+        return $response->json();
     }
 }
